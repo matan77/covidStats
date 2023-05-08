@@ -2,6 +2,12 @@ import express from "express";
 import fetch from 'node-fetch';
 const router = express.Router();
 
+/*
+The function sum all death and positive for each state in all days
+Note: The funcion not in use
+Input: covidData the covid data for all countrry in each day
+Output: a map of keys of state and value of death and positive data
+*/
 const mergeDays = (covidData) => {
     const states = new Map();
     for (let covRec of covidData) {
@@ -21,54 +27,48 @@ const mergeDays = (covidData) => {
 
 
 
-const getTopDeaths = (states) => {
+const getTopDeaths = (covidData) => {
     // sort by deathes
-    states = Array.from(Object.entries(states), ([state, data]) => (
-        {
-            state: state, death: data.death
-        }
-    ));
+    covidData = covidData.sort((recA, recB) => recB.death - recA.death);
 
-    states.sort((stateA, stateB) => stateB.death - stateA.death);
-
-    // return top ten
-    return states.slice(0, 10).map((state) => {
-        return {
-            state: state.state,
-            death: state.death
-        }
-    });
+    let topDeaths = new Array();
+    for (let i = 0; i < 10; i++) {
+        covidData[0].date = String(covidData[0].date);
+        topDeaths.push({
+            date: covidData[0].date.slice(6, 8) + '/' + covidData[0].date.slice(4, 6) + '/' + covidData[0].date.slice(0, 4),
+            state: covidData[0].state,
+            death: covidData[0].death
+        });
+        covidData = covidData.filter(rec => rec.state != covidData[0].state);
+    }
+    return topDeaths;
 }
 
-const getTopPositive = (states) => {
+const getTopPositive = (covidData) => {
     // sort by positive
-    states = Array.from(Object.entries(states), ([state, data]) => (
-        {
-            state: state, positive: data.positive
-        }
-    ));
+    covidData = covidData.sort((recA, recB) => recB.positive - recA.positive);
 
-    states.sort((stateA, stateB) => stateB.positive - stateA.positive);
-
-    // return top ten
-    return states.slice(0, 10).map((state) => {
-        return {
-            state: state.state,
-            positive: state.positive
-        }
-    });
+    let topPositives = new Array();
+    for (let i = 0; i < 10; i++) {
+        covidData[0].date = String(covidData[0].date);
+        topPositives.push({
+            date: covidData[0].date.slice(6, 8) + '/' + covidData[0].date.slice(4, 6) + '/' + covidData[0].date.slice(0, 4),
+            state: covidData[0].state,
+            positive: covidData[0].positive
+        });
+        covidData = covidData.filter(rec => rec.state != covidData[0].state);
+    }
+    return topPositives;
 }
 
 router.get('/getData/', async (req, res) => {
     const responseFromServer = await fetch("https://api.covidtracking.com/v1/states/daily.json",
         { method: 'get' });
     const covidData = await responseFromServer.json();
-    const states = mergeDays(covidData)
     return res.status(200).json(
         {
-            // mergeDays: states
-            topDeath: getTopDeaths(states),
-            topPositive: getTopPositive(states)
+            topDeath: getTopDeaths(covidData),
+            topPositive: getTopPositive(covidData)
         }
     );
 }
